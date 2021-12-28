@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Sonntagsfrage</string>
+    <string name="open_drawer_menu">Open drawer menu</string>
+    <string name="close_drawer_menu">Close drawer menu</string>
+    <string name="spd_menu_item">SPD</string>
+    <string name="union_menu_item">CDU/CSU</string>
+    <string name="gruene_menu_item">Grüne</string>
+    <string name="fdp_menu_item">FDP</string>
+    <string name="linke_menu_item">Die Linke</string>
+    <string name="afd_menu_item">AFD</string>
+    <string name="others_menu_item">Others</string>
+</resources>

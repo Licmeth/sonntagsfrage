@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+    <item
+        android:id="@+id/miSpd"
+        android:title="@string/spd_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+    
+    <item
+        android:id="@+id/miUnion"
+        android:title="@string/union_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+
+    <item
+        android:id="@+id/miGruene"
+        android:title="@string/gruene_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+
+    <item
+        android:id="@+id/miFdp"
+        android:title="@string/fdp_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+
+    <item
+        android:id="@+id/miLinke"
+        android:title="@string/linke_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+
+    <item
+        android:id="@+id/miAfd"
+        android:title="@string/afd_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+
+    <item
+        android:id="@+id/miOthers"
+        android:title="@string/others_menu_item"
+        app:actionViewClass="android.widget.Switch" />
+</menu>
