@@ -51,26 +51,32 @@ class MainActivity : AppCompatActivity() {
 
         // UI
         drawerLayout = findViewById(R.id.drawerLayout)
-        navigationView = findViewById(R.id.navigationView)
-        instituteSpinner = navigationView.getHeaderView(0).findViewById(R.id.institute_spinner)
-
         toggle = ActionBarDrawerToggle(this, drawerLayout, R.string.open_drawer_menu, R.string.close_drawer_menu)
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
+        // Navigation bar to toggle the chart lines of individual parties
+        navigationView = findViewById(R.id.navigationView)
         navigationView.setNavigationItemSelectedListener { toggleMenuItemChecked(it) }
         navigationView.menu.forEach { item ->
             run {
                 val switch: CompoundButton? = item.actionView as? CompoundButton
-                switch?.setOnClickListener { toggleMenuItemChecked(item) }
-                //switch?.setOnCheckedChangeListener { _, checked -> setMenuItemChecked(item, checked) }
+                switch?.setOnCheckedChangeListener { _, checked -> onMenuItemChecked(item, checked) }
             }
         }
+
+        // Spinner at the top of the navigation menu to select a survey institute
+        instituteSpinner = navigationView.getHeaderView(0).findViewById(R.id.institute_spinner)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, Institute.values())
+        instituteSpinner.adapter = adapter
         instituteSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-                lifecycleScope.launch { preferencesManager.saveSelectedInstitute(p2) }
+                lifecycleScope.launch {
+                    preferencesManager.saveSelectedInstitute(p2)
+                    refreshChart()
+                }
             }
 
             override fun onNothingSelected(p0: AdapterView<*>?) {
@@ -78,17 +84,15 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, Institute.values())
-        instituteSpinner.adapter = adapter
+        // Init menu elements
+        lifecycleScope.launch{ initMenu() }
 
-        observePreferences()
-
-
-
+        //observePreferences()
 
         // Fetch survey data
         surveys = SonntagsfrageScraper.listSurveys()
 
+        // Refresh chart
         lifecycleScope.launch{ refreshChart() }
     }
 
@@ -97,6 +101,27 @@ class MainActivity : AppCompatActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private suspend fun initMenu() {
+        val preferences = preferencesManager.getPreferences()
+        val parties = preferences.first
+        val selectedInstituteIndex = preferences.second
+
+        for(party in parties) {
+            val menuItemId = when (party) {
+                Party.SPD -> R.id.miSpd
+                Party.UNION -> R.id.miUnion
+                Party.GRUENE -> R.id.miGruene
+                Party.FDP -> R.id.miFdp
+                Party.LINKE -> R.id.miLinke
+                Party.AFD -> R.id.miAfd
+                Party.OTHERS -> R.id.miOthers
+            }
+            setMenuItemChecked(navigationView.menu.findItem(menuItemId), checked = true)
+        }
+
+        instituteSpinner.setSelection(selectedInstituteIndex)
     }
 
     private suspend fun refreshChart() {
@@ -114,20 +139,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun observePreferences() {
-        preferencesManager.selectedInstitute.asLiveData().observe(this, { instituteSpinner.setSelection(it) })
-        preferencesManager.showSpd.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(0), it) })
-        preferencesManager.showUnion.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(1), it) })
-        preferencesManager.showGruene.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(2), it) })
-        preferencesManager.showFdp.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(3), it) })
-        preferencesManager.showLinke.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(4), it) })
-        preferencesManager.showAfd.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(5), it) })
-        preferencesManager.showOthers.asLiveData().observe(this, { setSwitch(navigationView.menu.getItem(6), it) })
-    }
-
-    private fun setSwitch(menuItem: MenuItem?, active: Boolean) {
-        val switch: CompoundButton? = menuItem?.actionView as? CompoundButton
-        switch?.isChecked = active
-        lifecycleScope.launch{ refreshChart() }
+        /*
+        preferencesManager.selectedInstitute.asLiveData().observe(this) { instituteSpinner.setSelection(it) }
+        preferencesManager.showSpd.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(0), it) }
+        preferencesManager.showUnion.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(1), it) }
+        preferencesManager.showGruene.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(2), it) }
+        preferencesManager.showFdp.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(3), it) }
+        preferencesManager.showLinke.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(4), it) }
+        preferencesManager.showAfd.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(5), it) }
+        preferencesManager.showOthers.asLiveData().observe(this) { setSwitch(navigationView.menu.getItem(6), it) }
+        */
     }
 
     private fun toggleMenuItemChecked(item: MenuItem): Boolean {
@@ -140,19 +161,23 @@ class MainActivity : AppCompatActivity() {
 
     private fun setMenuItemChecked(item: MenuItem, checked: Boolean) {
         val switch: CompoundButton? = item.actionView as? CompoundButton
-        if(switch != null && switch.isChecked != checked) {
+        if (switch != null && switch.isChecked != checked) {
             switch.isChecked = checked
-            lifecycleScope.launch {
-                when(item.itemId) {
-                    R.id.miSpd -> preferencesManager.saveShowSpd(switch.isChecked)
-                    R.id.miUnion -> preferencesManager.saveShowUnion(switch.isChecked)
-                    R.id.miGruene -> preferencesManager.saveShowGruene(switch.isChecked)
-                    R.id.miFdp -> preferencesManager.saveShowFdp(switch.isChecked)
-                    R.id.miLinke -> preferencesManager.saveShowLinke(switch.isChecked)
-                    R.id.miAfd -> preferencesManager.saveShowAfd(switch.isChecked)
-                    R.id.miOthers -> preferencesManager.saveShowOthers(switch.isChecked)
-                }
+        }
+    }
+
+    private fun onMenuItemChecked(item: MenuItem, checked: Boolean) {
+        lifecycleScope.launch {
+            when(item.itemId) {
+                R.id.miSpd -> preferencesManager.saveShowSpd(checked)
+                R.id.miUnion -> preferencesManager.saveShowUnion(checked)
+                R.id.miGruene -> preferencesManager.saveShowGruene(checked)
+                R.id.miFdp -> preferencesManager.saveShowFdp(checked)
+                R.id.miLinke -> preferencesManager.saveShowLinke(checked)
+                R.id.miAfd -> preferencesManager.saveShowAfd(checked)
+                R.id.miOthers -> preferencesManager.saveShowOthers(checked)
             }
+            refreshChart()
         }
     }
 
